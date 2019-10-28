@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<style>
+
+body {
+  margin: 0;
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#sky {
+  position: absolute;
+  background: #112;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#ground {
+  position: absolute;
+  background: #000;
+
+  height: 10vh;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#message {
+  color: white;
+  font: 20px Courier; 
+
+  transition: 1s;
+  opacity: 0.8;
+}
+
+#tree {
+  position: absolute;
+
+  height: 20vh;
+  width: 20vh;
+
+  left: 10vw;
+  bottom: 10vh;
+}
+
+</style>
+
+<html>
+<head>
+  <title>thunderstorm</title>
+</head>
+
+<body>
+  <div id="sky">
+    <img id="tree" src="tree.png">
+    </img>
+    <div id="ground">
+      <div id="message">
+        loading...
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.15/howler.min.js"></script>
+
+<script>
+
+var dummy = new Howl({
+  src: ['thunder_start.mp3'],
+  volume: 0,
+});
+
+var rain = new Howl({
+  src: ['rain.mp3'],
+  volume: 0.2,
+});
+
+var startThunder = new Howl({
+  src: ['thunder_start.mp3'],
+  volume: 0.5,
+});
+
+var thunder = new Howl({
+  src: ['thunder_sprites.mp3'],
+  sprite: {
+    a: [0, 8000],
+    b: [8000, 16000],
+    c: [16000, 24000],
+    d: [24000, 32000],
+  },
+  volume: 0.5,
+});
+
+var thunderKeys = 'abcd';
+var lastKey = null;
+
+function getRandomThunderKey() {
+  var max = thunderKeys.length;
+  var index = Math.floor(max*Math.random());
+  var key = thunderKeys[index];
+
+  if (lastKey == key)
+    return getRandomThunderKey();
+  else {
+    lastKey = key;
+    return key;
+  }
+}
+
+var rainStarted = false;
+
+var sky = document.querySelector("#sky");
+var body = document.querySelector("body");
+var ground = document.querySelector("#ground");
+var message = document.querySelector("#message");
+
+var flashInterval = 20;
+var flashVariance = 500;
+var flashProbability = 0.98;
+
+var rainStartDelay = 3000;
+var thunderStartDelay = 2000;
+
+var thunderDelay = 1000;
+var thunderDelayVariance = 3000;
+
+// Original sky color
+var skyColor = sky.style.background;
+
+function flashOn() {
+  // Light up sky
+  sky.style.background = "#FFF";
+
+  // Flash off next frame
+  requestAnimationFrame(flashOff);
+}
+
+function flashOff() {
+  // Reset sky
+  sky.style.background = skyColor;
+}
+
+function flash(probability, total = 0) {
+  // Flash on next frame
+  requestAnimationFrame(flashOn);
+
+  // +1 to the flash counter
+  total++;
+
+  // Flash again?
+  if (Math.random() < probability) {
+    var delay = flashInterval+flashVariance*Math.pow(Math.random(), 2);
+    setTimeout(() => {
+      flash(probability*probability, total);
+    }, delay);
+  }
+  else {
+    console.log("Flashed a total of "+total+" times")
+  }
+}
+
+function startRain() {
+  console.log("Starting rain");
+
+  dummy.play();
+  message.style.opacity = 0;
+  rainStarted = true;
+
+  setTimeout(() => rain.play(), rainStartDelay);
+  setTimeout(() => startThunder.play(), thunderStartDelay);
+}
+
+function playThunder() {
+  var key = getRandomThunderKey();
+  var delay = thunderDelay+thunderDelayVariance*Math.random();
+  setTimeout(() => thunder.play(key), delay);
+}
+
+function click() {
+  console.log("Lightning strikes!");
+
+  if (!rainStarted) startRain();
+  else playThunder();
+
+  flash(flashProbability);
+}
+
+function onAllLoaded() {
+  message.innerHTML = "turn sound on + click";
+  body.addEventListener("click", click);
+  body.addEventListener("touchstart", click);
+}
+
+function checkIfAllLoaded() {
+  console.log("Checking for full load...");
+  var loaded = true;
+
+  loaded = loaded && rain.state() == "loaded";
+  loaded = loaded && thunder.state() == "loaded";
+  loaded = loaded && startThunder.state() == "loaded";
+
+  if (loaded) onAllLoaded();
+}
+
+rain.once('load', checkIfAllLoaded);
+thunder.once('load', checkIfAllLoaded);
+startThunder.once('load', checkIfAllLoaded);
+
+checkIfAllLoaded();
+</script>
